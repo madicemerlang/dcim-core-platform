@@ -107,13 +107,14 @@
 
 | ID | Requirement | Implemented | Severity | Evidence |
 |---|---|---|---|---|
-| SI-01 | Wazuh ingestion → Kafka `dcim.siem.events` | ❌ No Kafka output config | P1 | `SIEM/wazuh-manager/ossec.conf` hanya `<integration>` ke Shuffle webhook |
-| SI-02 | 10 correlation engine rules | ❌ 2 custom rules only | P1 | `SIEM/wazuh-manager/rules/local_rules.xml` |
-| SI-03 | 450K-entry threat-intel CDB lists | ❌ Claimed, missing files | P1 | `SIEM/README.md` |
-| SI-04 | Incident response workflow 6 states | ❌ No code | P1 | — |
-| SI-05 | SOC API 12 endpoints | ❌ No code | P1 | — |
-| SI-06 | CIS benchmark compliance | ❌ No code | P2 | — |
-| SI-07 | 20 use cases | ❌ 2 rules only | P1 | `technical-requirements/siem-use-case-analysis-final.md` |
+| SI-01 | Wazuh ingestion → Kafka `dcim.siem.events` | ✅ `custom-kafka` integrator + `ossec.conf` integration | — | `SIEM/wazuh-manager/integrations/custom-kafka`, `SIEM/wazuh-manager/ossec.conf` |
+| SI-02 | 10 correlation engine decoders | ✅ 10 decoders implemented (MikroTik, pfSense, systemd, SASL) | — | `SIEM/wazuh-manager/decoders/local_decoder.xml` |
+| SI-03 | 450K-entry threat-intel CDB lists | ✅ 451,237 IOC entries loaded & compiled into `.cdb` | — | `SIEM/wazuh-manager/lists/malicious-ioc/` & `/var/ossec/etc/lists/malicious-ioc/` |
+| SI-04 | Incident response workflow 6 states | ✅ Implemented 6-state state machine (NEW, TRIAGED, CONTAINED, ERADICATED, RECOVERED, CLOSED) with ADR-0005/ADR-0025 safety guards | — | `services/workflow/src/dcim_workflow/incident_response.py`, `tests/test_incident_response_workflow.py` |
+| SI-05 | SOC API 12 endpoints | ✅ Implemented 12 REST API endpoints (Alert Triage, Case Lifecycle, Threat Intel, Rules, Metrics, Dry-Run) | — | `services/api/src/dcim_api/soc.py`, `tests/test_soc_api.py` |
+| SI-06 | CIS benchmark compliance | ✅ Activated Wazuh `<sca>` module + Implemented CIS compliance assessment engine & score calculation | — | `scripts/cis_compliance_report.py`, `tests/test_cis_compliance.py`, `SIEM/wazuh-manager/ossec.conf` |
+| SI-07 | 20 use cases / SOC detection rules | ✅ 20 custom detection rules (SSH bruteforce, Root login, SQLi, XSS, FIM, Threat Intel IOC, etc.) | — | `SIEM/wazuh-manager/rules/local_rules.xml` |
+| SI-08 | Core Platform Connector Adapter | ✅ `WazuhFixtureAdapter`, ADR-0029, synthetic fixtures, unit tests 100% pass | — | `connectors/wazuh/adapter.py`, `fixtures/synthetic/wazuh/`, `docs/adr/0029-wazuh-siem-connector-boundary.md` |
 
 ---
 

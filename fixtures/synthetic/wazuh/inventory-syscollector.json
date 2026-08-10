@@ -1,0 +1,33 @@
+{
+  "event_id": "synthetic-wazuh-event-004",
+  "timestamp": "2026-08-10T14:15:00Z",
+  "observed_at": "2026-08-10T14:15:00Z",
+  "source": {
+    "system": "wazuh-synthetic",
+    "instance": "wazuh-manager-01",
+    "connector": "wazuh-fixture-adapter",
+    "transport": "syscollector-json",
+    "native_event_id": "syscollector-scan-001"
+  },
+  "wazuh": {
+    "agent": {
+      "id": "004",
+      "name": "synthetic-agent-host-04",
+      "ip": "198.51.100.40"
+    },
+    "wodle": {
+      "name": "syscollector"
+    },
+    "inventory": {
+      "os": {
+        "name": "Ubuntu",
+        "version": "22.04.4 LTS",
+        "architecture": "x86_64"
+      },
+      "hardware": {
+        "cpu_name": "Synthetic Intel Xeon",
+        "ram_total_mb": 16384
+      }
+    }
+  }
+}

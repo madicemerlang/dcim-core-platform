@@ -11,6 +11,7 @@ from typing import Any, Protocol, TypeAlias
 from uuid import UUID
 
 from .auth import load_internal_token_auth
+from .soc import router as soc_router
 
 
 JsonScalar: TypeAlias = str | int | float | bool | None
@@ -319,5 +320,7 @@ ORDER BY run_id, kind, subject_key
             "assets": {"count": len(asset_response.json())},
             "cis": {"count": len(ci_response.json())},
         }
+
+    app.include_router(soc_router)
 
     return app

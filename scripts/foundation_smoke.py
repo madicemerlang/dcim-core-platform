@@ -288,7 +288,8 @@ def prometheus_api(endpoint: str) -> dict[str, object]:
 
 
 def query_scalar(expression: str) -> float:
-    payload = prometheus_api(f"/api/v1/query?query={quote(expression, safe='{}\"=,')}")
+    safe_chars = '{}"=,'
+    payload = prometheus_api(f"/api/v1/query?query={quote(expression, safe=safe_chars)}")
     results = payload["data"]["result"]
     if not results:
         return 0.0

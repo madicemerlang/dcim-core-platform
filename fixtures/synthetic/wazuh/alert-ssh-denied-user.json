@@ -1,0 +1,33 @@
+{
+  "event_id": "synthetic-wazuh-event-003",
+  "timestamp": "2026-08-10T14:10:00Z",
+  "observed_at": "2026-08-10T14:10:00Z",
+  "source": {
+    "system": "wazuh-synthetic",
+    "instance": "wazuh-manager-01",
+    "connector": "wazuh-fixture-adapter",
+    "transport": "syslog-json",
+    "native_event_id": "100600"
+  },
+  "wazuh": {
+    "rule": {
+      "id": "100600",
+      "level": 10,
+      "description": "SSH Brute Force: 5+ failed SSH login attempts from 203.0.113.45 within 2 minutes.",
+      "groups": ["authentication_failures", "sshd", "bruteforce"]
+    },
+    "agent": {
+      "id": "003",
+      "name": "synthetic-agent-server-03",
+      "ip": "198.51.100.30"
+    },
+    "decoder": {
+      "name": "sshd"
+    },
+    "data": {
+      "srcip": "203.0.113.45",
+      "dstuser": "invalid_user",
+      "protocol": "ssh"
+    }
+  }
+}

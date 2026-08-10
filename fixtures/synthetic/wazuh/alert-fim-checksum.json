@@ -1,0 +1,33 @@
+{
+  "event_id": "synthetic-wazuh-event-002",
+  "timestamp": "2026-08-10T14:05:00Z",
+  "observed_at": "2026-08-10T14:05:00Z",
+  "source": {
+    "system": "wazuh-synthetic",
+    "instance": "wazuh-manager-01",
+    "connector": "wazuh-fixture-adapter",
+    "transport": "syslog-json",
+    "native_event_id": "100608"
+  },
+  "wazuh": {
+    "rule": {
+      "id": "100608",
+      "level": 9,
+      "description": "FIM Alert: Critical system configuration file '/etc/ssh/sshd_config' was modified.",
+      "groups": ["syscheck_entry_modified", "fim"]
+    },
+    "agent": {
+      "id": "002",
+      "name": "synthetic-agent-gateway-02",
+      "ip": "198.51.100.20"
+    },
+    "decoder": {
+      "name": "syscheck_integrity"
+    },
+    "data": {
+      "file": "/etc/ssh/sshd_config",
+      "sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256_after": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e"
+    }
+  }
+}
