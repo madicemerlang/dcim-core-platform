@@ -34,8 +34,12 @@ except ModuleNotFoundError:
         - scalar key: value pairs (strings, ints, bools)
         - list items indicated by ``- ``
         - nested mappings via 2-space indentation
+        - inline comments after values (``# ...``)
+        - nested mappings under list items
         """
         root: dict = {}
+        # Stack entries: (indent, container).
+        # ``container`` is the dict or list that owns children at this level.
         stack: list[tuple[int, dict | list]] = [(-1, root)]
 
         for raw_line in text.splitlines():
@@ -44,63 +48,98 @@ except ModuleNotFoundError:
                 continue
 
             indent = len(raw_line) - len(raw_line.lstrip())
+            content = stripped.lstrip()
 
-            # Pop back to correct nesting level
-            while len(stack) > 1 and indent <= stack[-1][0]:
+            is_list_item = content.startswith("- ")
+
+            # ── Pop back to the correct nesting level ───────────────
+            # Each stack entry records the indent where its children
+            # live.  We pop entries that are *deeper* than the current
+            # line's indent — i.e. ``indent < stack[-1][0]``.  A line
+            # at exactly the recorded indent is still a child of that
+            # container (e.g. a key inside a mapping, or a ``- `` item
+            # inside a list).
+            while len(stack) > 1 and indent < stack[-1][0]:
                 stack.pop()
 
             _, current = stack[-1]
 
-            # List item
-            if stripped.lstrip().startswith("- "):
-                item_text = stripped.lstrip()[2:]
+            # ── List item ───────────────────────────────────────────
+            if is_list_item:
+                item_text = content[2:]
+
+                # Ensure ``current`` is a list.  When the parent key had
+                # an empty value we pushed a *dict* placeholder — convert
+                # it to a list now.
                 if isinstance(current, list):
-                    container = current
+                    container: list = current
                 else:
-                    # Should not happen for well-formed fixtures
-                    container = current  # type: ignore[assignment]
+                    new_list: list = []
+                    # Patch the reference in the parent mapping.
+                    for si in range(len(stack) - 2, -1, -1):
+                        parent = stack[si][1]
+                        if isinstance(parent, dict):
+                            for pk, pv in parent.items():
+                                if pv is current:
+                                    parent[pk] = new_list
+                                    break
+                            break
+                    stack[-1] = (stack[-1][0], new_list)
+                    container = new_list
 
                 if ":" in item_text:
+                    # ``- key: value`` — start a new mapping inside the list.
                     obj: dict = {}
                     k, v = item_text.split(":", 1)
-                    obj[k.strip()] = _yaml_scalar(v.strip())
-                    container.append(obj)  # type: ignore[union-attr]
+                    v = _strip_comment(v.strip())
+                    obj[k.strip()] = _yaml_scalar(v)
+                    container.append(obj)
+                    # Deeper keys (``name:``, ``rollback:``) live at
+                    # indent + 2 (the ``- `` occupies two characters).
                     stack.append((indent + 2, obj))
                 else:
-                    container.append(_yaml_scalar(item_text))  # type: ignore[union-attr]
+                    container.append(_yaml_scalar(_strip_comment(item_text)))
                 continue
 
-            # Key: value
-            if ":" in stripped:
-                key, _, val = stripped.partition(":")
+            # ── Key: value ──────────────────────────────────────────
+            if ":" in content:
+                key, _, val = content.partition(":")
                 key = key.strip()
                 val = val.strip()
+
                 if val == "":
-                    # Could be a nested mapping or list — peek ahead is hard,
-                    # so create a dict placeholder; if next lines are ``- ``,
-                    # we will convert on the fly.
+                    # Nested mapping or list — create a dict placeholder.
                     child: dict | list = {}
                     if isinstance(current, dict):
                         current[key] = child
                     stack.append((indent + 2, child))
                 elif val.startswith("[") and val.endswith("]"):
                     # Inline list  e.g.  affected_cis: [ci-01, ci-02]
-                    items = [_yaml_scalar(x.strip().strip("'\"")) for x in val[1:-1].split(",") if x.strip()]
+                    items = [
+                        _yaml_scalar(x.strip().strip("'\""))
+                        for x in val[1:-1].split(",")
+                        if x.strip()
+                    ]
                     if isinstance(current, dict):
                         current[key] = items
                 elif val.startswith("{") and val.endswith("}"):
                     if isinstance(current, dict):
                         current[key] = json.loads(val)
                 else:
+                    val = _strip_comment(val)
                     if isinstance(current, dict):
                         current[key] = _yaml_scalar(val)
 
-            # Check if we need to convert a dict placeholder to a list
-            # (happens when the first child is a list item)
-
-        # Convert empty dict placeholders that received list items
-        _convert_empty_dicts(root)
         return root
+
+    def _strip_comment(value: str) -> str:
+        """Remove a trailing ``# comment`` from a YAML scalar value."""
+        # Only strip if there is a space before the ``#`` (to avoid
+        # mangling strings that legitimately contain ``#``).
+        idx = value.find("  #")
+        if idx != -1:
+            return value[:idx].rstrip()
+        return value
 
     def _yaml_scalar(value: str):
         """Convert a YAML scalar string to a Python type."""
@@ -122,20 +161,6 @@ except ModuleNotFoundError:
         except ValueError:
             pass
         return value
-
-    def _convert_empty_dicts(node):
-        """Recursively convert dict placeholders that should be lists."""
-        if isinstance(node, dict):
-            for k, v in list(node.items()):
-                if isinstance(v, dict) and not v:
-                    # Remains empty dict — fine
-                    pass
-                elif isinstance(v, (dict, list)):
-                    _convert_empty_dicts(v)
-        elif isinstance(node, list):
-            for item in node:
-                if isinstance(item, (dict, list)):
-                    _convert_empty_dicts(item)
 
 
 def _load_yaml_file(filepath: Path) -> dict:
