@@ -1,0 +1,49 @@
+# OT-Safe Playbook Specification: Host Isolation
+playbook_id: pb-containment-host-isolation
+name: Host Isolation Containment Playbook
+version: 1.0.0
+description: Isolate an infected host from the network while preserving SOC management access.
+ot_safe: false  # Not OT-safe by default (requires safety gates if target is OT asset)
+
+allowed_asset_types:
+  - IT-Endpoint
+  - IT-Server
+  - Corporate-Workstation
+
+restricted_asset_types:
+  - OT-PLC
+  - OT-SCADA
+  - OT-HMI
+  - OT-DCS
+  - Critical-Infrastructure
+
+safety_preconditions:
+  dry_run_required: true
+  human_approval_required: true
+  maintenance_window_required: true
+  blast_radius_check_required: true
+
+steps:
+  - step_id: step-01-blast-radius-check
+    name: Check Asset Classification & Blast Radius
+    action_type: advisory_query
+    target_ci_param: target_host_ip
+    rollback:
+      action_type: no_op
+      description: No state change to rollback.
+
+  - step_id: step-02-human-approval-gate
+    name: Request Human Approver Authorization
+    action_type: approval_gate
+    approver_role: SOC_L2_Analyst
+    rollback:
+      action_type: cancel_approval_request
+      description: Cancel pending approval request.
+
+  - step_id: step-03-isolate-network
+    name: Apply Network Quarantine ACL / Endpoint Isolation
+    action_type: network_quarantine
+    target_ci_param: target_host_ip
+    rollback:
+      action_type: remove_network_quarantine
+      description: Remove quarantine ACL and restore network connectivity.

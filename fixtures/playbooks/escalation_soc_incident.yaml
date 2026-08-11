@@ -1,0 +1,43 @@
+# OT-Safe Playbook Specification: SOC Escalation & Ticket Creation
+playbook_id: pb-escalation-soc-incident
+name: SOC Advisory Incident Escalation Playbook
+version: 1.0.0
+description: Enrich security alert, perform LLM threat analysis, and auto-create case ticket in DFIR IRIS.
+ot_safe: true  # Advisory-only, 100% OT-safe
+
+allowed_asset_types:
+  - IT-Endpoint
+  - IT-Server
+  - OT-PLC
+  - OT-SCADA
+  - OT-HMI
+  - Critical-Infrastructure
+
+safety_preconditions:
+  dry_run_required: false  # Can run live in Phase 0-5 as it is advisory-only
+  human_approval_required: false
+  maintenance_window_required: false
+  blast_radius_check_required: false
+
+steps:
+  - step_id: step-01-enrich-iocs
+    name: Query Threat Intel (VirusTotal & OTX)
+    action_type: http_query
+    rollback:
+      action_type: no_op
+      description: Read-only query.
+
+  - step_id: step-02-llm-analysis
+    name: Local LLM Threat Assessment
+    action_type: ai_completion
+    rollback:
+      action_type: no_op
+      description: Read-only inference.
+
+  - step_id: step-03-create-iris-ticket
+    name: Auto-create Incident Ticket in DFIR IRIS
+    action_type: create_ticket
+    target_ci_param: case_name
+    rollback:
+      action_type: cancel_ticket
+      description: Mark DFIR IRIS ticket status as cancelled.

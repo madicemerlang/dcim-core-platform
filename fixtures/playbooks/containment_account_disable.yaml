@@ -1,0 +1,37 @@
+# OT-Safe Playbook Specification: Account Disable
+playbook_id: pb-containment-account-disable
+name: User Account Disable Containment Playbook
+version: 1.0.0
+description: Disable compromised user credential account in Active Directory / Directory Service.
+ot_safe: true  # OT-safe for standard user accounts (if not an active OT operator identity)
+
+allowed_asset_types:
+  - IT-UserAccount
+  - Corporate-Identity
+
+restricted_asset_types:
+  - OT-OperatorAccount
+  - Emergency-Bypass-Account
+
+safety_preconditions:
+  dry_run_required: true
+  human_approval_required: true
+  maintenance_window_required: false
+  blast_radius_check_required: true
+
+steps:
+  - step_id: step-01-audit-identity-cIs
+    name: Audit User Identity and Associated CIs
+    action_type: advisory_query
+    target_ci_param: user_id
+    rollback:
+      action_type: no_op
+      description: No state change to rollback.
+
+  - step_id: step-02-disable-user-account
+    name: Disable User Account in Directory
+    action_type: iam_disable_account
+    target_ci_param: user_id
+    rollback:
+      action_type: iam_enable_account
+      description: Re-enable user account in Directory.

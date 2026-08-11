@@ -153,7 +153,7 @@ from dcim_workflow.ot_safety import (
 )
 from dcim_workflow.incident_response import SafetyPreconditionError
 
-PLAYBOOK_DIR = Path("/home/infra/SOAR/playbooks")
+PLAYBOOK_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "playbooks"
 
 
 class TestOTPlaybookEnforcement(unittest.TestCase):

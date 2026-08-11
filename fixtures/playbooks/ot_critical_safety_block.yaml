@@ -1,0 +1,30 @@
+# OT-Safe Playbook Specification: Prohibited Power/SNMP Reset Action (For Safety Testing)
+playbook_id: pb-ot-critical-safety-block
+name: Prohibited OT Power Reset Playbook
+version: 1.0.0
+description: Playbook containing prohibited physical power reset operation class.
+ot_safe: false
+
+allowed_asset_types: []
+
+restricted_asset_types:
+  - OT-PLC
+  - OT-SCADA
+  - OT-HMI
+  - Critical-Infrastructure
+
+safety_preconditions:
+  dry_run_required: true
+  human_approval_required: true
+  maintenance_window_required: true
+  blast_radius_check_required: true
+
+steps:
+  - step_id: step-01-prohibited-power-reset
+    name: Attempt Redfish Power Reset on OT SCADA Controller
+    action_type: power_reset  # Prohibited operation class!
+    operation_class: power_reset
+    target_ci_param: plc_asset_id
+    rollback:
+      action_type: no_op
+      description: Irreversible physical action.
