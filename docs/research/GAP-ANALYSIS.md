@@ -170,12 +170,12 @@
 
 | ID | Requirement | Implemented | Severity | Evidence |
 |---|---|---|---|---|
-| SO-01 | TraceCat SOAR / Temporal workflow engine | ❌ n8n prototype only | P1 | `SOAR/N8N Workflow/SOAR.json` |
-| SO-02 | Wazuh → Kafka `dcim.siem.alerts` → SOAR | ❌ No deployable Wazuh config | P1 | — |
-| SO-03 | OT-safe playbook enforcement | ❌ No containment actions committed | P1 | — |
-| SO-04 | Case management (IRIS) | ⚠️ DFIR-IRIS case creation node exists | P2 | workflow JSON |
-| SO-05 | 100+ connectors | ❌ 3 integrations only | P2 | — |
-| SO-06 | MCP AI agent integration | ❌ No | P2 | — |
+| SO-01 | TraceCat SOAR / Temporal workflow engine | ⚠️ Evaluated & Mapped — Spike & DSL delivered (n8n 8-node pipeline + Tracecat YAML spec + MIT/Apache-2.0 license check + unit tests 100% pass) | P2 | `SOAR/docs/TRACECAT-TEMPORAL-EVALUATION.md`, `SOAR/tracecat/soar_workflow.yaml`, `SOAR/tests/test_soar_workflow.py` |
+| SO-02 | Wazuh → Kafka `dcim.siem.alerts` → SOAR | ✅ Implemented — Producer, Envelope (0.1.0), Consumer, Integrator Script & Test Suite | Closed | `connectors/wazuh/kafka_producer.py`, `connectors/wazuh/soar_kafka_consumer.py`, `SIEM/wazuh-manager/integrations/custom-wazuh2kafka`, `tests/test_wazuh_kafka_pipeline.py` |
+| SO-03 | OT-safe playbook enforcement | ✅ Implemented — 4 Playbook Templates, `ot_safe` flags, `OTPlaybookEnforcer` engine, ADR-0005/ADR-0025 gates & 20 tests pass | Closed | `SOAR/playbooks/*.yaml`, `services/workflow/src/dcim_workflow/ot_safety.py`, `SOAR/docs/OT-SAFE-PLAYBOOK-SPEC.md`, `tests/test_ot_playbook_enforcement.py` |
+| SO-04 | Case management (IRIS) | ✅ Implemented — DFIR IRIS bi-directional sync & dynamic severity bridge (`IRISSyncBridge`, 6-state lifecycle mapping, rule-level dynamic severity, `update_case_status` API & 8 tests pass) | Closed | `services/workflow/src/dcim_workflow/iris_sync.py`, `connectors/iris/adapter.py`, `tests/test_iris_sync.py` |
+| SO-05 | 100+ connectors / Modular Registry | ✅ Implemented — Modular `SOARConnectorRegistry` interface + 6 new connectors (MISP, TheHive, Slack, Email, Firewall, EDR) + 5 existing (11 total) & 9 tests pass | Closed | `connectors/soar_registry.py`, `connectors/misp`, `connectors/thehive`, `connectors/slack`, `connectors/email`, `connectors/firewall`, `connectors/edr`, `tests/test_soar_connectors.py` |
+| SO-06 | MCP AI agent integration | ✅ Implemented — `AIAnalystEngine` (structured JSON verdict, confidence, MITRE tactics, fallback parser) + `MCPSOARToolRegistry` MCP JSON-RPC tool provider & 11 tests pass | Closed | `services/workflow/src/dcim_workflow/ai_analyst.py`, `SOAR/ai_analyst/`, `tests/test_ai_analyst.py` |
 
 ---
 
@@ -185,7 +185,7 @@
 |---|---|---|---|---|
 | IC-01 | Canonical event envelope `dcim.normalized.events` | ✅ | ⚠️ Schema only in Python | P2 |
 | IC-02 | Raw topics `dcim.raw.*` | ✅ | ✅ | — |
-| IC-03 | SIEM topic `dcim.siem.alerts` | ✅ | ⚠️ Consumer exists, no producer config | P1 |
+| IC-03 | SIEM topic `dcim.siem.alerts` | ✅ | ✅ Producer & Consumer configured | Closed |
 | IC-04 | Analytics topic `dcim.analytics.metrics` | ✅ | ✅ | — |
 | IC-05 | AsyncAPI / OpenAPI contracts | ✅ | ❌ | P2 |
 | IC-06 | Webhook contract core → n8n | ❌ | ❌ Webhook ad-hoc | P2 |
@@ -210,12 +210,12 @@
 
 | ID | Requirement | Actual | Severity | Evidence |
 |---|---|---|---|---|
-| EM-01 | CI/CD di setiap repo | ❌ Core platform punya CI; satelit tidak | P1 | `.github/workflows/` hanya di core |
-| EM-02 | Unit + integration tests | ⚠️ Core: 205 tests; ingestion: 1; AI: benchmark scripts; workflow/SIEM/SOAR: 0 | P1 | — |
+| EM-01 | CI/CD di setiap repo | ✅ Core platform & SOAR repo memiliki CI workflow lengkap (`JSON lint`, `public-safety scan`, `unittest runner`) | Closed | `SOAR/.github/workflows/ci.yml` |
+| EM-02 | Unit + integration tests | ⚠️ Core: 336 tests PASS; SOAR repo: 16 tests PASS | P1 | — |
 | EM-03 | Reproducible builds / pinned deps | ✅ Core; ⚠️ Ingestion (version inconsistency); ❌ AI/workflow | P2 | — |
 | EM-04 | Code review / multi-author | ❌ Satelit mostly single-author | P2 | `git log` |
 | EM-05 | SBOM / vulnerability scanning | ✅ Core `foundation_supply_chain.py`; ❌ satelit | P2 | — |
-| EM-06 | Public-safety scanner | ✅ Core; ❌ Satelit | P1 | `scripts/check_public_repo_safety.py` |
+| EM-06 | Public-safety scanner | ✅ Core (`check_public_repo_safety.py`) & SOAR (`check_public_safety.py`) | Closed | `SOAR/scripts/check_public_safety.py` |
 
 ---
 

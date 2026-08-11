@@ -102,7 +102,6 @@ class SOARKafkaConsumer:
                 self.soar_webhook_url,
                 data=body,
                 headers={"Content-Type": "application/json"},
-                method="POST",
             )
             with urllib.request.urlopen(req, timeout=5.0) as resp:
                 status = resp.status

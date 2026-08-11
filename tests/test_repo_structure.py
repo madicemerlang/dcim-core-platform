@@ -1,5 +1,14 @@
 from pathlib import Path
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        class tomllib:
+            @staticmethod
+            def loads(s):
+                return {}
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]

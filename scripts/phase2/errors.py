@@ -1,7 +1,16 @@
 """Typed Phase 2 pipeline failures."""
 
 from dataclasses import dataclass
-from typing import override
+try:
+    from typing import override
+except ImportError:
+    try:
+        from typing_extensions import override  # type: ignore[attr-defined]
+    except ImportError:
+        def override(method):
+            return method
+
+
 
 
 class Phase2Error(Exception):

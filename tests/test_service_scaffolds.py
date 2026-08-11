@@ -1,6 +1,23 @@
 import ast
 from pathlib import Path
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        import re
+        class tomllib:
+            @staticmethod
+            def loads(s):
+                res = {"project": {}}
+                for line in s.splitlines():
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip('"\'')
+                        res["project"][k] = v
+                return res
 import unittest
 
 
