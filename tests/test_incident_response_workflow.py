@@ -1,7 +1,18 @@
 """Tests for the 6-state Incident Response workflow state machine."""
 
+import os
+import sys
 import unittest
 from datetime import datetime, timezone
+
+# Ensure repo root and service package paths are in sys.path for unittest discovery
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+WORKFLOW_SRC = os.path.join(REPO_ROOT, "services/workflow/src")
+if WORKFLOW_SRC not in sys.path:
+    sys.path.insert(0, WORKFLOW_SRC)
 
 from dcim_workflow.incident_response import (
     IncidentCase,

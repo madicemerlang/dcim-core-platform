@@ -1,7 +1,22 @@
 """Unit tests for SI-05 SOC REST API 12 endpoints (Direct Async Handlers)."""
 
 import asyncio
+import os
+import sys
 import unittest
+
+# Ensure repo root and service package paths are in sys.path for unittest discovery
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+API_SRC = os.path.join(REPO_ROOT, "services/api/src")
+if API_SRC not in sys.path:
+    sys.path.insert(0, API_SRC)
+
+WORKFLOW_SRC = os.path.join(REPO_ROOT, "services/workflow/src")
+if WORKFLOW_SRC not in sys.path:
+    sys.path.insert(0, WORKFLOW_SRC)
 
 from dcim_api.soc import (
     DryRunActionRequest,
