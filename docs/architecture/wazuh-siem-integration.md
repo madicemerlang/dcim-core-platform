@@ -13,7 +13,7 @@ graph TD
     end
 
     subgraph Messaging Infrastructure
-        F -->|Topic: dcim.siem.events| G[Kafka Cluster 10.70.0.56:9092]
+        F -->|Topic: dcim.siem.events| G[Kafka Cluster 198.51.100.56:9092]
     end
 
     subgraph DCIM Core Platform [/home/infra/dcim-core-platform]

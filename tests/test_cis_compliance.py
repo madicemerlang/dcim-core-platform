@@ -48,7 +48,7 @@ class TestCISComplianceAssessment(unittest.TestCase):
                 remediation="PermitRootLogin no in /etc/ssh/sshd_config",
             ),
             CISRuleCheck(
-                rule_id="1.1.1.1",
+                rule_id="1.1.1.256",
                 title="Ensure mounting of cramfs filesystems is disabled",
                 description="Unneeded filesystems increase attack surface",
                 rationale="Disable unused filesystems",
