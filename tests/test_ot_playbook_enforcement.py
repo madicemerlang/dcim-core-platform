@@ -1,8 +1,147 @@
 """Tests for OT-Safe Playbook Enforcement Engine (SO-03)."""
 
 from pathlib import Path
+import json
+import os
+import re
+import sys
 import unittest
-import yaml
+
+# ---------------------------------------------------------------------------
+# Ensure repo-root and service packages are importable without PYTHONPATH
+# ---------------------------------------------------------------------------
+REPO_ROOT = str(Path(__file__).resolve().parent.parent)
+WORKFLOW_SRC = os.path.join(REPO_ROOT, "services", "workflow", "src")
+for _p in (REPO_ROOT, WORKFLOW_SRC):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+# ---------------------------------------------------------------------------
+# Lightweight YAML loader — uses PyYAML when available, otherwise falls back
+# to a minimal parser sufficient for the playbook fixture files used here.
+# ---------------------------------------------------------------------------
+try:
+    import yaml as _yaml
+
+    def _load_yaml(text: str) -> dict:
+        return _yaml.safe_load(text)
+
+except ModuleNotFoundError:
+    def _load_yaml(text: str) -> dict:  # type: ignore[misc]
+        """Minimal YAML-subset parser for simple playbook fixtures.
+
+        Handles:
+        - scalar key: value pairs (strings, ints, bools)
+        - list items indicated by ``- ``
+        - nested mappings via 2-space indentation
+        """
+        root: dict = {}
+        stack: list[tuple[int, dict | list]] = [(-1, root)]
+
+        for raw_line in text.splitlines():
+            stripped = raw_line.rstrip()
+            if not stripped or stripped.lstrip().startswith("#"):
+                continue
+
+            indent = len(raw_line) - len(raw_line.lstrip())
+
+            # Pop back to correct nesting level
+            while len(stack) > 1 and indent <= stack[-1][0]:
+                stack.pop()
+
+            _, current = stack[-1]
+
+            # List item
+            if stripped.lstrip().startswith("- "):
+                item_text = stripped.lstrip()[2:]
+                if isinstance(current, list):
+                    container = current
+                else:
+                    # Should not happen for well-formed fixtures
+                    container = current  # type: ignore[assignment]
+
+                if ":" in item_text:
+                    obj: dict = {}
+                    k, v = item_text.split(":", 1)
+                    obj[k.strip()] = _yaml_scalar(v.strip())
+                    container.append(obj)  # type: ignore[union-attr]
+                    stack.append((indent + 2, obj))
+                else:
+                    container.append(_yaml_scalar(item_text))  # type: ignore[union-attr]
+                continue
+
+            # Key: value
+            if ":" in stripped:
+                key, _, val = stripped.partition(":")
+                key = key.strip()
+                val = val.strip()
+                if val == "":
+                    # Could be a nested mapping or list — peek ahead is hard,
+                    # so create a dict placeholder; if next lines are ``- ``,
+                    # we will convert on the fly.
+                    child: dict | list = {}
+                    if isinstance(current, dict):
+                        current[key] = child
+                    stack.append((indent + 2, child))
+                elif val.startswith("[") and val.endswith("]"):
+                    # Inline list  e.g.  affected_cis: [ci-01, ci-02]
+                    items = [_yaml_scalar(x.strip().strip("'\"")) for x in val[1:-1].split(",") if x.strip()]
+                    if isinstance(current, dict):
+                        current[key] = items
+                elif val.startswith("{") and val.endswith("}"):
+                    if isinstance(current, dict):
+                        current[key] = json.loads(val)
+                else:
+                    if isinstance(current, dict):
+                        current[key] = _yaml_scalar(val)
+
+            # Check if we need to convert a dict placeholder to a list
+            # (happens when the first child is a list item)
+
+        # Convert empty dict placeholders that received list items
+        _convert_empty_dicts(root)
+        return root
+
+    def _yaml_scalar(value: str):
+        """Convert a YAML scalar string to a Python type."""
+        if value in ("true", "True", "yes"):
+            return True
+        if value in ("false", "False", "no"):
+            return False
+        if value in ("null", "~", ""):
+            return None
+        # Strip surrounding quotes
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            return value[1:-1]
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        return value
+
+    def _convert_empty_dicts(node):
+        """Recursively convert dict placeholders that should be lists."""
+        if isinstance(node, dict):
+            for k, v in list(node.items()):
+                if isinstance(v, dict) and not v:
+                    # Remains empty dict — fine
+                    pass
+                elif isinstance(v, (dict, list)):
+                    _convert_empty_dicts(v)
+        elif isinstance(node, list):
+            for item in node:
+                if isinstance(item, (dict, list)):
+                    _convert_empty_dicts(item)
+
+
+def _load_yaml_file(filepath: Path) -> dict:
+    """Load a YAML file using the best available parser."""
+    return _load_yaml(filepath.read_text(encoding="utf-8"))
+
 
 from dcim_workflow.ot_safety import (
     AssetClassification,
@@ -28,14 +167,14 @@ class TestOTPlaybookEnforcement(unittest.TestCase):
         self.assertGreaterEqual(len(yaml_files), 4, "Should have at least 4 playbook YAML templates")
 
         for filepath in yaml_files:
-            content = yaml.safe_load(filepath.read_text(encoding="utf-8"))
+            content = _load_yaml_file(filepath)
             self.assertIn("playbook_id", content)
             self.assertIn("steps", content)
             self.assertIn("ot_safe", content)
 
     def test_advisory_playbook_passes_dry_run(self) -> None:
         playbook_path = PLAYBOOK_DIR / "escalation_soc_incident.yaml"
-        playbook = yaml.safe_load(playbook_path.read_text(encoding="utf-8"))
+        playbook = _load_yaml_file(playbook_path)
 
         audit = self.enforcer.evaluate_execution_request(
             playbook=playbook,
@@ -51,7 +190,7 @@ class TestOTPlaybookEnforcement(unittest.TestCase):
 
     def test_ot_asset_without_approval_blocks_execution(self) -> None:
         playbook_path = PLAYBOOK_DIR / "containment_host_isolation.yaml"
-        playbook = yaml.safe_load(playbook_path.read_text(encoding="utf-8"))
+        playbook = _load_yaml_file(playbook_path)
 
         enforcer = OTPlaybookEnforcer(current_phase=6, enforce_dry_run_only=False)
         with self.assertRaises(SafetyPreconditionError) as ctx:
@@ -68,7 +207,7 @@ class TestOTPlaybookEnforcement(unittest.TestCase):
 
     def test_outside_maintenance_window_blocks_execution(self) -> None:
         playbook_path = PLAYBOOK_DIR / "containment_host_isolation.yaml"
-        playbook = yaml.safe_load(playbook_path.read_text(encoding="utf-8"))
+        playbook = _load_yaml_file(playbook_path)
 
         enforcer = OTPlaybookEnforcer(current_phase=6, enforce_dry_run_only=False)
         with self.assertRaises(SafetyPreconditionError) as ctx:
@@ -85,7 +224,7 @@ class TestOTPlaybookEnforcement(unittest.TestCase):
 
     def test_phase0_dry_run_only_enforcement(self) -> None:
         playbook_path = PLAYBOOK_DIR / "containment_host_isolation.yaml"
-        playbook = yaml.safe_load(playbook_path.read_text(encoding="utf-8"))
+        playbook = _load_yaml_file(playbook_path)
 
         enforcer = OTPlaybookEnforcer(current_phase=0, enforce_dry_run_only=True)
         with self.assertRaises(SafetyPreconditionError) as ctx:
@@ -100,7 +239,7 @@ class TestOTPlaybookEnforcement(unittest.TestCase):
 
     def test_prohibited_operation_class_permanently_blocked(self) -> None:
         playbook_path = PLAYBOOK_DIR / "ot_critical_safety_block.yaml"
-        playbook = yaml.safe_load(playbook_path.read_text(encoding="utf-8"))
+        playbook = _load_yaml_file(playbook_path)
 
         # Even with approval and active maintenance window, prohibited operation class MUST fail!
         with self.assertRaises(ProhibitedOperationError) as ctx:
@@ -153,7 +292,7 @@ class TestOTPlaybookEnforcement(unittest.TestCase):
 
     def test_audit_record_pre_execution_write(self) -> None:
         playbook_path = PLAYBOOK_DIR / "containment_account_disable.yaml"
-        playbook = yaml.safe_load(playbook_path.read_text(encoding="utf-8"))
+        playbook = _load_yaml_file(playbook_path)
 
         audit = self.enforcer.evaluate_execution_request(
             playbook=playbook,
